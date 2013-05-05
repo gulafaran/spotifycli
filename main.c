@@ -35,7 +35,7 @@ int parse_options(int argc, char *argv[], DBus *dbus) {
 				break;
 
 			case 'p':
-				return send_dbus_message(dbus, "Play");
+				return send_dbus_message(dbus, "PlayPause");
 
 			case 'a':
 				return send_dbus_message(dbus, "Pause");
@@ -92,25 +92,17 @@ int print_nowplaying(DBus * dbus) {
 int send_dbus_message(DBus *dbus, char *msg)
 {
 	int retval = 0;
-	GDBusMessage *message;
-	message = g_dbus_message_new_method_call("org.mpris.MediaPlayer2.spotify", "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player", msg);
+	GVariant *result, *props;
 
-	if(!message) {
-		fprintf(stderr, "Failed to create DBus method\n");
-	  retval = 1;
-		goto out;
-	}
+	result = g_dbus_connection_call_sync(dbus->bus, "org.mpris.MediaPlayer2.spotify", "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player",
+			msg, NULL, NULL, G_DBUS_CALL_FLAGS_NONE, -1, NULL, &dbus->error);
 
-	gboolean msgval;
-	msgval = g_dbus_connection_send_message(dbus->bus, message, G_DBUS_SEND_MESSAGE_FLAGS_NONE, NULL, &dbus->error);
-	if(msgval == FALSE) {
-		g_warning("Failed to connect to session bus: %s", dbus->error->message);
+	if (!result) {
+		g_warning("Failed to call Get: %s\n", dbus->error->message);
 		g_error_free(dbus->error);
 		retval = 1;
 	}
 
-out:
-	g_object_unref(message);
 	return retval;
 }
 
