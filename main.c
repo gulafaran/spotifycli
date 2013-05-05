@@ -15,7 +15,7 @@ static void usage();
 
 int parse_options(int argc, char *argv[], DBus *dbus) {
 	int opt, option_index = 0;
-  int retval = 3;
+	int retval = 3;
 	static const struct option opts[] = {
 		{"help",       no_argument,        0, 'h'},
 		{"play",       no_argument,        0, 'p'},
@@ -56,7 +56,6 @@ int parse_options(int argc, char *argv[], DBus *dbus) {
 				retval = 2;
 		}
 	}
-
 	return retval;
 }
 
@@ -96,7 +95,7 @@ int send_dbus_message(DBus *dbus, char *msg)
 	GDBusMessage *message;
 	message = g_dbus_message_new_method_call("org.mpris.MediaPlayer2.spotify", "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player", msg);
 
-  if(!message) {
+	if(!message) {
 		fprintf(stderr, "Failed to create DBus method\n");
 	  retval = 1;
 		goto out;
@@ -104,7 +103,7 @@ int send_dbus_message(DBus *dbus, char *msg)
 
 	gboolean msgval;
 	msgval = g_dbus_connection_send_message(dbus->bus, message, G_DBUS_SEND_MESSAGE_FLAGS_NONE, NULL, &dbus->error);
-  if(msgval == FALSE) {
+	if(msgval == FALSE) {
 		g_warning("Failed to connect to session bus: %s", dbus->error->message);
 		g_error_free(dbus->error);
 		retval = 1;
@@ -130,8 +129,8 @@ void usage() {
 }
 
 int main(int argc, char *argv[]) {
-  DBus dbus;
-  dbus.error = NULL;
+	DBus dbus;
+	dbus.error = NULL;
 
 	dbus.bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &dbus.error);
 	if (!dbus.bus) {
