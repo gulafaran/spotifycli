@@ -2,6 +2,7 @@
 #include <gio/gio.h>
 #include <getopt.h>
 #include <stdio.h>
+#include <string.h>
 
 typedef struct {
 	GError *error;
@@ -10,24 +11,26 @@ typedef struct {
 
 static int parse_options(int argc, char *argv[], DBus *dbus);
 static int print_nowplaying(DBus *dbus);
-static int send_dbus_message(DBus *dbus, char *msg);
+static int send_dbus_message(DBus *dbus, char *msg, char *arg, char *type);
 static void usage();
 
 int parse_options(int argc, char *argv[], DBus *dbus) {
 	int opt, option_index = 0;
 	int retval = 3;
+	char *url;
+
 	static const struct option opts[] = {
 		{"help",       no_argument,        0, 'h'},
 		{"play",       no_argument,        0, 'p'},
-		{"pause",      no_argument,        0, 'a'},
 		{"stop",       no_argument,        0, 's'},
 		{"next",       no_argument,        0, 'n'},
 		{"previous",   no_argument,        0, 'r'},
 		{"nowplaying", no_argument,        0, 'i'},
+		{"openurl",  required_argument,    0, 'o'},
 		{0, 0, 0, 0}
 	};
 
-	while((opt = getopt_long(argc, argv, "hpasnri", opts, &option_index)) != -1) {
+	while((opt = getopt_long(argc, argv, "o:hpsnri", opts, &option_index)) != -1) {
 		switch(opt) {
 			case 'h':
 				usage();
@@ -35,22 +38,22 @@ int parse_options(int argc, char *argv[], DBus *dbus) {
 				break;
 
 			case 'p':
-				return send_dbus_message(dbus, "PlayPause");
-
-			case 'a':
-				return send_dbus_message(dbus, "Pause");
+				return send_dbus_message(dbus, "PlayPause", NULL, NULL);
 
 			case 's':
-				return send_dbus_message(dbus, "Stop");
+				return send_dbus_message(dbus, "Stop", NULL, NULL);
 
 			case 'n':
-				return send_dbus_message(dbus, "Next");
+				return send_dbus_message(dbus, "Next", NULL, NULL);
 
 			case 'r':
-				return send_dbus_message(dbus, "Previous");
+				return send_dbus_message(dbus, "Previous", NULL, NULL);
 
 			case 'i':
 				return print_nowplaying(dbus);
+
+			case 'o':
+				return send_dbus_message(dbus, "OpenUri", argv[argc - 1], "(s)");
 
 			default:
 				retval = 2;
@@ -89,13 +92,18 @@ int print_nowplaying(DBus * dbus) {
 	return 0;
 }
 
-int send_dbus_message(DBus *dbus, char *msg)
+int send_dbus_message(DBus *dbus, char *msg, char *arg, char *type)
 {
 	int retval = 0;
 	GVariant *result, *props;
-
-	result = g_dbus_connection_call_sync(dbus->bus, "org.mpris.MediaPlayer2.spotify", "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player",
-			msg, NULL, NULL, G_DBUS_CALL_FLAGS_NONE, -1, NULL, &dbus->error);
+	if(arg == NULL) {
+		result = g_dbus_connection_call_sync(dbus->bus, "org.mpris.MediaPlayer2.spotify", "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player",
+				msg, NULL, NULL, G_DBUS_CALL_FLAGS_NONE, -1, NULL, &dbus->error);
+	}
+	else {
+		result = g_dbus_connection_call_sync(dbus->bus, "org.mpris.MediaPlayer2.spotify", "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player",
+				msg, g_variant_new(type, arg), NULL, G_DBUS_CALL_FLAGS_NONE, -1, NULL, &dbus->error);
+	}
 
 	if (!result) {
 		g_warning("Failed to call Get: %s\n", dbus->error->message);
@@ -111,13 +119,13 @@ void usage() {
 			"Usage: spotifycli [options]\n\n");
 	fprintf(stderr,
 			" Options:\n "
-			"  -h, --help         display this help and exit\n "
-			"  -p, --play         starts playing current selected song or resuming a paused one\n "
-			"  -a, --pause        pauses current playing song\n "
-			"  -s, --stop         stops playing current song\n "
-			"  -n, --next         changes to the next song in play queue\n "
-			"  -r, --previous     changes to the previous played song in queue\n "
-			"  -i, --nowplaying   prints current song that is paused or playing \n\n");
+			"  -h, --help           display this help and exit\n "
+			"  -p, --play           starts playing current selected song or resuming a paused one\n "
+			"  -s, --stop           stops playing current song\n "
+			"  -n, --next           changes to the next song in play queue\n "
+			"  -r, --previous       changes to the previous played song in queue\n "
+			"  -i, --nowplaying     prints current song that is paused or playing \n"
+			"  -o, --openurl <url>  opens spotify uri/http url and starts playing it\n");
 }
 
 int main(int argc, char *argv[]) {
