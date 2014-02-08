@@ -115,7 +115,7 @@ int send_dbus_message(DBus *dbus, char *msg, char *arg, char *type)
 }
 
 void usage() {
-	fprintf(stderr, "spotifycli %s\n"
+	fprintf(stderr, "spotifycli \n"
 			"Usage: spotifycli [options]\n\n");
 	fprintf(stderr,
 			" Options:\n "
