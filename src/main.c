@@ -93,6 +93,21 @@ int print_nowplaying(DBus * dbus) {
   return 0;
 }
 
+int running(DBus * dbus) {
+  GVariant *result;
+
+  result = g_dbus_connection_call_sync(dbus->bus, "org.mpris.MediaPlayer2.spotify", "/org/mpris/MediaPlayer2", "org.freedesktop.DBus.Properties",
+      "Get", g_variant_new("(ss)", "org.mpris.MediaPlayer2.Player", "Metadata"), G_VARIANT_TYPE("(v)"), G_DBUS_CALL_FLAGS_NONE, -1, NULL, &dbus->error);
+
+  if(!result) {
+    g_printf("spotify not running.\n");
+    g_error_free(dbus->error);
+    return 0;
+  }
+
+  return 1;
+}
+
 int send_dbus_message(DBus *dbus, char *msg, char *arg, char *type)
 {
   int retval = 0;
@@ -107,7 +122,7 @@ int send_dbus_message(DBus *dbus, char *msg, char *arg, char *type)
   }
 
   if (!result) {
-    g_warning("Failed to call Get: %s\n", dbus->error->message);
+    g_warning("Failed to send dbus message: %s , %s\n", msg, dbus->error->message);
     g_error_free(dbus->error);
     retval = 1;
   }
@@ -130,6 +145,7 @@ void usage() {
 }
 
 int main(int argc, char *argv[]) {
+  int retval = 0;
   DBus dbus;
   dbus.error = NULL;
 
@@ -140,13 +156,15 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  int retval = parse_options(argc, argv, &dbus);
+  if(running(&dbus)) {
+    retval = parse_options(argc, argv, &dbus);
 
-  if(retval == 3)
-    fprintf(stderr, "error: no operation specified (use -h for help)\n");
-  else if(retval == 1)
-    fprintf(stderr, "error: something went horrible wrong\n");
+    if(retval == 3)
+      fprintf(stderr, "error: no operation specified (use -h for help)\n");
+    else if(retval == 1)
+      fprintf(stderr, "error: something went horrible wrong\n");
 
+  }
   g_object_unref(dbus.bus);
   return retval;
 }
